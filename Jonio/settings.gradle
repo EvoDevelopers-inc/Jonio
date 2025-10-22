@@ -1,1 +1,5 @@
 rootProject.name = 'Jonio'
+include 'JClient'
+
+
+include 'JClientCore'
