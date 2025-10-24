@@ -1,10 +1,9 @@
 import evo.developers.ru.jonio.client.core.JOnioClient;
+import evo.developers.ru.jonio.client.core.console.ConsoleInterface;
+import evo.developers.ru.jonio.client.core.helpers.httpclient.TorHttpClient;
 import evo.developers.ru.jonio.client.core.model.Settings;
-import evo.developers.ru.jonio.client.core.tor.ClientTor;
+import evo.developers.ru.jonio.client.core.network.p2p.connector.JOnioConnector;
 import lombok.extern.slf4j.Slf4j;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Slf4j
 public class Main {
@@ -16,23 +15,34 @@ public class Main {
         JOnioClient client = JOnioClient.getInstance();
         client.initialize();
 
-        // Добавляем shutdown hook для корректного завершения
+        JOnioConnector connector = JOnioConnector.getInstance(client.getTorClient());
+        String myOnionAddress = client.getTorClient().getOnionAddress();
+        
+        TorHttpClient httpClient = new TorHttpClient(
+            client.getTorClient().getSOCKS_PROXY_HOST(),
+            client.getTorClient().getSocksPort()
+        );
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 log.info("Shutting down...");
+                connector.stop();
                 client.shutdown();
             } catch (Exception e) {
                 log.error("Error during shutdown", e);
             }
         }));
 
-        log.info("==============================================");
-        log.info("JOnio Client is running!");
-        log.info("Onion address: {}", client.getOnionAddress());
-        log.info("Press Ctrl+C to stop");
-        log.info("==============================================");
+        log.info("Waiting for hidden service to be published in Tor network...");
+        Thread.sleep(15000);
 
-        // Держим приложение запущенным
-        Thread.currentThread().join();
+        log.info("Starting console interface...");
+        ConsoleInterface console = new ConsoleInterface(connector, httpClient, myOnionAddress);
+        Thread consoleThread = new Thread(console);
+        consoleThread.setDaemon(false);
+        consoleThread.start();
+
+
+        consoleThread.join();
     }
 }

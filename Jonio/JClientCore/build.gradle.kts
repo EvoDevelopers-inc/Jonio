@@ -25,16 +25,31 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("io.javalin:javalin:6.7.0")
-    
-    // Apache Commons Compress for tar.gz extraction
     implementation("org.apache.commons:commons-compress:1.24.0")
-    
-    // Tor control library (используем исходный код из ресурсов)
-    // Библиотека jtorctl не доступна в Maven Central, поэтому добавляем её из JAR или используем альтернативу
-    // Временно комментируем до получения правильного JAR
-    // implementation("net.freehaven.tor.control:jtorctl:0.4")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
+    implementation("org.jetbrains:annotations:24.0.1")
+
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
+
+tasks.register<Jar>("fatJar") {
+    archiveClassifier.set("all")
+    manifest {
+        attributes["Main-Class"] = "Main"
+    }
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get()
+            .filter { it.name.endsWith("jar") }
+            .map { zipTree(it) }
+    })
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+

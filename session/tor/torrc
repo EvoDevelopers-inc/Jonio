@@ -1,5 +1,0 @@
-SocksPort 9050
-ControlPort 9051
-HashedControlPassword 16:2DB988FBD8A8EEAB60C8125CCB41815601EA24E3F0FFA3C3858FBE7C27
-CookieAuthentication 0
-DataDirectory /Users/artemzbaranskij/Documents/GitHub/Jonio/./session/tor/data

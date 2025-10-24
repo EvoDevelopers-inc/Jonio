@@ -27,26 +27,19 @@ import java.util.Set;
 @Slf4j
 public class JOnioClient extends JClient {
 
+    public static final String VERSION_CLIENT = "ALPHA-0.9.1-l33t AIR TYPE";
     @Getter
     private JOSession session;
     private Settings settings;
     
     @Getter
     private ClientTor torClient;
-    
-    private TorControlConnection hiddenServiceControl;
-
-    private Javalin app;
-
 
     public JOnioClient(Settings settings) {
         this.settings = settings;
     }
 
 
-    /**
-     * Инициализирует клиент с поддержкой Tor
-     */
     public void initialize() throws Exception {
         String sSessionPathFolder  = settings.getPathToSessionFolder();
 
@@ -80,36 +73,15 @@ public class JOnioClient extends JClient {
     }
 
 
-    /**
-     * Останавливает клиент и Tor
-     */
+
     public void shutdown() throws Exception {
-        if (hiddenServiceControl != null) {
-            try {
-                log.info("Removing hidden service...");
-                hiddenServiceControl.sendCommand("DEL_ONION " + torClient.getOnionAddress().replace(".onion", ""));
-                hiddenServiceControl.close();
-            } catch (Exception e) {
-                log.error("Error removing hidden service", e);
-            }
-            hiddenServiceControl = null;
-        }
-        
-        if (app != null) {
-            log.info("Stopping Javalin server...");
-            app.stop();
-            app = null;
-        }
-        
+
         if (torClient != null) {
             log.info("Shutting down Tor...");
             torClient.stop();
         }
     }
-    
-    /**
-     * Возвращает адрес .onion hidden service
-     */
+
     public String getOnionAddress() {
         return torClient.getOnionAddress();
     }
