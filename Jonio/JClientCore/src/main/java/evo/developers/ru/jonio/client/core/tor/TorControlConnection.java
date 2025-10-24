@@ -1,19 +1,14 @@
 package evo.developers.ru.jonio.client.core.tor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import lombok.extern.slf4j.Slf4j;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Упрощенная реализация Tor Control Connection
- * Основана на Tor Control Protocol specification
- */
+
+@Slf4j
 public class TorControlConnection implements AutoCloseable {
-    private static final Logger logger = LoggerFactory.getLogger(TorControlConnection.class);
-    
+
     private final Socket socket;
     private final BufferedReader reader;
     private final BufferedWriter writer;
@@ -46,7 +41,7 @@ public class TorControlConnection implements AutoCloseable {
         }
         
         authenticated = true;
-        logger.info("Authenticated with Tor control port");
+        log.info("Authenticated with Tor control port");
     }
     
     /**
@@ -62,7 +57,7 @@ public class TorControlConnection implements AutoCloseable {
             throw new IOException("Signal failed: " + response);
         }
         
-        logger.info("Sent signal: {}", signal);
+        log.info("Sent signal: {}", signal);
     }
     
     /**
@@ -88,26 +83,23 @@ public class TorControlConnection implements AutoCloseable {
         
         return response;
     }
-    
-    /**
-     * Устанавливает конфигурацию Tor
-     */
-    public void setConf(String key, String value) throws IOException {
-        checkAuthenticated();
-        
-        sendCommand("SETCONF " + key + "=" + quoteString(value));
+
+
+    public void authenticateWithPassword(String password) throws IOException {
+        if (authenticated) return;
+
+        String command = "AUTHENTICATE \"" + password.replace("\"", "\\\"") + "\"";
+        sendCommand(command);
         String response = readResponse();
-        
+
         if (!response.startsWith("250")) {
-            throw new IOException("SETCONF failed: " + response);
+            throw new IOException("Authentication failed: " + response);
         }
-        
-        logger.info("Set configuration: {}={}", key, value);
+
+        authenticated = true;
+        log.info("Authenticated with Tor control port using password");
     }
-    
-    /**
-     * Останавливает Tor
-     */
+
     public void shutdownTor(String keyword) throws IOException {
         checkAuthenticated();
         
@@ -116,28 +108,22 @@ public class TorControlConnection implements AutoCloseable {
         }
         
         sendCommand(keyword);
-        // Не читаем ответ, так как Tor может закрыть соединение
-        logger.info("Tor shutdown command sent");
+
+        log.info("Tor shutdown command sent");
     }
-    
-    /**
-     * Отправляет команду Tor
-     */
+
     private void sendCommand(String command) throws IOException {
-        logger.debug("Sending command: {}", command);
+        log.debug("Sending command: {}", command);
         writer.write(command + "\r\n");
         writer.flush();
     }
-    
-    /**
-     * Читает ответ от Tor
-     */
+
     private String readResponse() throws IOException {
         StringBuilder response = new StringBuilder();
         String line;
         
         while ((line = reader.readLine()) != null) {
-            logger.debug("Received: {}", line);
+            log.debug("Received: {}", line);
             response.append(line);
             
             // Ответы Tor заканчиваются линией, начинающейся с кода без дефиса
@@ -152,19 +138,13 @@ public class TorControlConnection implements AutoCloseable {
         
         return response.toString();
     }
-    
-    /**
-     * Проверяет, аутентифицированы ли мы
-     */
+
     private void checkAuthenticated() throws IOException {
         if (!authenticated) {
             throw new IOException("Not authenticated with Tor control port");
         }
     }
-    
-    /**
-     * Экранирует строку для использования в командах Tor
-     */
+
     private String quoteString(String s) {
         if (s == null) {
             return "\"\"";
@@ -183,10 +163,7 @@ public class TorControlConnection implements AutoCloseable {
         sb.append('"');
         return sb.toString();
     }
-    
-    /**
-     * Проверяет, открыто ли соединение
-     */
+
     public boolean isConnected() {
         return socket != null && socket.isConnected() && !socket.isClosed();
     }
@@ -197,7 +174,7 @@ public class TorControlConnection implements AutoCloseable {
             try {
                 reader.close();
             } catch (IOException e) {
-                logger.warn("Error closing reader", e);
+                log.warn("Error closing reader", e);
             }
         }
         
@@ -205,7 +182,7 @@ public class TorControlConnection implements AutoCloseable {
             try {
                 writer.close();
             } catch (IOException e) {
-                logger.warn("Error closing writer", e);
+                log.warn("Error closing writer", e);
             }
         }
         
@@ -213,11 +190,14 @@ public class TorControlConnection implements AutoCloseable {
             try {
                 socket.close();
             } catch (IOException e) {
-                logger.warn("Error closing socket", e);
+                log.warn("Error closing socket", e);
             }
         }
         
-        logger.info("Tor control connection closed");
+        log.info("Tor control connection closed");
     }
 }
+
+
+
 

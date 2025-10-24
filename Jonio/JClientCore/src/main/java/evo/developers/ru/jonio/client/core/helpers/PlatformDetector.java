@@ -2,9 +2,7 @@ package evo.developers.ru.jonio.client.core.helpers;
 
 import lombok.Getter;
 
-/**
- * Утилита для определения платформы и архитектуры системы
- */
+
 public class PlatformDetector {
     
     @Getter
@@ -57,9 +55,7 @@ public class PlatformDetector {
         }
     }
     
-    /**
-     * Определяет текущую операционную систему
-     */
+
     public static OS detectOS() {
         String osName = System.getProperty("os.name").toLowerCase();
         
@@ -73,10 +69,7 @@ public class PlatformDetector {
         
         return OS.UNKNOWN;
     }
-    
-    /**
-     * Определяет архитектуру процессора
-     */
+
     public static Architecture detectArchitecture() {
         String arch = System.getProperty("os.arch").toLowerCase();
         
@@ -91,24 +84,18 @@ public class PlatformDetector {
         return Architecture.UNKNOWN;
     }
     
-    /**
-     * Получает полную информацию о платформе
-     */
+
     public static PlatformInfo detect() {
         return new PlatformInfo(detectOS(), detectArchitecture());
     }
     
-    /**
-     * Проверяет, поддерживается ли текущая платформа
-     */
+
     public static boolean isCurrentPlatformSupported() {
         PlatformInfo info = detect();
         return info.isSupported();
     }
     
-    /**
-     * Возвращает человекочитаемое описание платформы
-     */
+
     public static String getPlatformDescription() {
         PlatformInfo info = detect();
         return String.format("%s %s (%s)", 
@@ -117,32 +104,27 @@ public class PlatformDetector {
             info.getFullPlatformString());
     }
     
-    /**
-     * Проверяет, является ли текущая ОС Windows
-     */
+
     public static boolean isWindows() {
         return detectOS() == OS.WINDOWS;
     }
     
-    /**
-     * Проверяет, является ли текущая ОС macOS
-     */
+
     public static boolean isMacOS() {
         return detectOS() == OS.MACOS;
     }
     
-    /**
-     * Проверяет, является ли текущая ОС Linux
-     */
+
     public static boolean isLinux() {
         return detectOS() == OS.LINUX;
     }
     
-    /**
-     * Проверяет, является ли архитектура ARM (Apple Silicon)
-     */
+
     public static boolean isARM() {
         return detectArchitecture() == Architecture.AARCH64;
     }
 }
+
+
+
 

@@ -2,6 +2,7 @@ package evo.developers.ru.jonio.client.core.base;
 
 import com.google.gson.Gson;
 import evo.developers.ru.jonio.client.core.JOnioClient;
+import evo.developers.ru.jonio.client.core.exceptions.JOnioClientExists;
 import evo.developers.ru.jonio.client.core.exceptions.JOnioClientNotInit;
 import evo.developers.ru.jonio.client.core.model.Settings;
 
@@ -19,8 +20,8 @@ abstract public class JClient {
 
     public static JOnioClient init(Settings settings)
     {
-        if (jonioClient ==  null)
-            throw new JOnioClientNotInit();
+        if (jonioClient != null)
+            throw new JOnioClientExists();
 
         return (JOnioClient) (jonioClient = new JOnioClient(settings));
 

@@ -7,6 +7,7 @@ import evo.developers.ru.jonio.client.core.model.JOSession;
 import evo.developers.ru.jonio.client.core.model.Settings;
 import evo.developers.ru.jonio.client.core.tor.ClientTor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +15,8 @@ import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@Slf4j
 public class JOnioClient extends JClient {
-    private static final Logger logger = LoggerFactory.getLogger(JOnioClient.class);
 
     @Getter
     private JOSession session;
@@ -42,32 +43,25 @@ public class JOnioClient extends JClient {
 
         Path sessionPathFolder = Paths.get(sSessionPathFolder);
 
-        // Инициализируем сессию
         initSession(sessionPathFolder);
-        
-        // Инициализируем Tor
+
         initTor(sessionPathFolder);
     }
-    
-    /**
-     * Инициализирует и запускает Tor
-     */
+
+
     private void initTor(Path sessionPathFolder) throws Exception {
-        logger.info("Initializing Tor client...");
+        log.info("Initializing Tor client...");
         
         torClient = new ClientTor();
-        
-        // Инициализируем бинарник Tor
+
         torClient.initTorBin(sessionPathFolder);
-        
-        // Запускаем Tor
+
         torClient.start();
-        
-        // Подключаемся к контроллеру
+
         torClient.connect();
         
-        logger.info("Tor client initialized successfully");
-        logger.info("SOCKS proxy: 127.0.0.1:{}", torClient.getSocksPort());
+        log.info("Tor client initialized successfully");
+        log.info("SOCKS proxy: 127.0.0.1:{}", torClient.getSocksPort());
     }
     
     /**
@@ -75,7 +69,7 @@ public class JOnioClient extends JClient {
      */
     public void shutdown() throws Exception {
         if (torClient != null) {
-            logger.info("Shutting down Tor...");
+            log.info("Shutting down Tor...");
             torClient.stop();
         }
     }

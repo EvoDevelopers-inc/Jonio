@@ -3,7 +3,8 @@ package evo.developers.ru.jonio.client.core.tor;
 import evo.developers.ru.jonio.client.core.helpers.PlatformDetector;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.slf4j.Logger;
@@ -11,132 +12,94 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Set;
 
+@Slf4j
 public class ClientTor {
-    private static final Logger logger = LoggerFactory.getLogger(ClientTor.class);
+
     private static final String TOR_VERSION = "14.5.8";
-    
+
     private Process torProcess;
     private TorControlConnection controlConnection;
-    
+
     @Getter
     private Path torDirectory;
-    
+
     @Getter @Setter
     private int socksPort = 9050;
-    
+
     @Getter @Setter
     private int controlPort = 9051;
-    
+
     @Getter @Setter
     private String controlPassword = "jonio_control_pass";
-    
+
     @Getter
     private boolean initialized = false;
-    
-    /**
-     * Определяет платформу и архитектуру системы
-     */
+
     private static String detectPlatform() {
+
         PlatformDetector.PlatformInfo info = PlatformDetector.detect();
-        
         if (!info.isSupported()) {
-            throw new RuntimeException(
-                String.format("Unsupported platform: %s", PlatformDetector.getPlatformDescription())
-            );
+            throw new RuntimeException("Unsupported platform: " + PlatformDetector.getPlatformDescription());
         }
-        
-        logger.info("Detected platform: {}", PlatformDetector.getPlatformDescription());
+
+        log.info("Detected platform: {}", PlatformDetector.getPlatformDescription());
         return info.getFullPlatformString();
     }
-    
-    /**
-     * Инициализирует Tor: распаковывает бинарник и подготавливает окружение
-     */
-    public void initTorBin(Path sessionFolder) throws IOException {
-        if (initialized) {
-            logger.info("Tor already initialized");
-            return;
-        }
-        
+
+    // ---------------- Initialization ----------------
+    public void initTorBin(Path sessionFolder) throws Exception {
+
+        if (initialized) return;
+
         String platform = detectPlatform();
         String resourceName = String.format("/tor-expert-bundle-%s-%s.tar.gz", platform, TOR_VERSION);
-        
-        logger.info("Looking for Tor bundle: {}", resourceName);
-        
         torDirectory = sessionFolder.resolve("tor");
-        
-        // Проверяем, уже распакован ли Tor
+
         Path torBinary = torDirectory.resolve("tor/tor");
-        if (PlatformDetector.isWindows()) {
-            torBinary = torDirectory.resolve("tor/tor.exe");
-        }
-        
+        if (PlatformDetector.isWindows()) torBinary = torDirectory.resolve("tor/tor.exe");
+
         if (Files.exists(torDirectory) && Files.exists(torBinary)) {
-            logger.info("Tor already extracted at {}", torDirectory);
+            log.info("Tor already extracted at {}", torDirectory);
             initialized = true;
             return;
         }
-        
-        // Создаем директорию для Tor
+
         Files.createDirectories(torDirectory);
-        
-        // Распаковываем архив
+
         try (InputStream resourceStream = getClass().getResourceAsStream(resourceName)) {
-            if (resourceStream == null) {
-                throw new IOException("Tor bundle not found in resources: " + resourceName);
-            }
-            
+            if (resourceStream == null) throw new IOException("Tor bundle not found: " + resourceName);
             extractTarGz(resourceStream, torDirectory);
-            logger.info("Tor bundle extracted successfully to {}", torDirectory);
-            
-            // Устанавливаем права на исполнение для Unix-систем
+            log.info("Tor bundle extracted successfully to {}", torDirectory);
+
             if (!PlatformDetector.isWindows()) {
                 setExecutablePermissions(torDirectory);
+                setSignCode();
             }
-            
             initialized = true;
         }
     }
-    
-    /**
-     * Распаковывает tar.gz архив
-     */
+
     private void extractTarGz(InputStream inputStream, Path outputPath) throws IOException {
         try (GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(inputStream);
              TarArchiveInputStream tarIn = new TarArchiveInputStream(gzipIn)) {
-            
-            TarArchiveEntry entry;
+
+            ArchiveEntry entry;
             while ((entry = tarIn.getNextEntry()) != null) {
-                if (!tarIn.canReadEntryData(entry)) {
-                    logger.warn("Cannot read entry: {}", entry.getName());
-                    continue;
-                }
-                
                 Path outputFile = outputPath.resolve(entry.getName());
-                
-                if (entry.isDirectory()) {
-                    Files.createDirectories(outputFile);
-                } else {
-                    // Создаем родительские директории
+                if (entry.isDirectory()) Files.createDirectories(outputFile);
+                else {
                     Files.createDirectories(outputFile.getParent());
-                    
-                    // Копируем файл
                     Files.copy(tarIn, outputFile, StandardCopyOption.REPLACE_EXISTING);
                 }
             }
         }
     }
-    
-    /**
-     * Устанавливает права на исполнение для бинарников Tor
-     */
+
     private void setExecutablePermissions(Path torDir) throws IOException {
         Path torBinary = torDir.resolve("tor/tor");
         if (Files.exists(torBinary)) {
@@ -149,170 +112,141 @@ public class ClientTor {
             perms.add(PosixFilePermission.OTHERS_READ);
             perms.add(PosixFilePermission.OTHERS_EXECUTE);
             Files.setPosixFilePermissions(torBinary, perms);
-            logger.info("Set executable permissions for {}", torBinary);
+            log.info("Set executable permissions for {}", torBinary);
         }
     }
-    
-    /**
-     * Запускает процесс Tor
-     */
-    public void start() throws IOException {
-        if (torProcess != null && torProcess.isAlive()) {
-            logger.warn("Tor is already running");
-            return;
-        }
-        
-        if (!initialized || torDirectory == null) {
-            throw new IllegalStateException("Tor not initialized. Call initTorBin() first");
-        }
-        
+
+    private void setSignCode() throws IOException, InterruptedException {
+        if (!PlatformDetector.isMacOS() || !PlatformDetector.isARM()) return;
+
         Path torBinary = torDirectory.resolve("tor/tor");
-        if (PlatformDetector.isWindows()) {
-            torBinary = torDirectory.resolve("tor/tor.exe");
-        }
-        
-        if (!Files.exists(torBinary)) {
-            throw new FileNotFoundException("Tor binary not found: " + torBinary);
-        }
-        
-        // Создаем директорию для данных Tor
+        Path libeventBinary = torDirectory.resolve("tor/libevent-2.1.7.dylib");
+
+        ProcessBuilder signLibevent = new ProcessBuilder("codesign", "-s", "-", libeventBinary.toString());
+        if (signLibevent.start().waitFor() != 0)
+            throw new IOException("Failed to codesign libevent");
+
+        ProcessBuilder signTor = new ProcessBuilder("codesign", "-s", "-", "-f", torBinary.toString());
+        if (signTor.start().waitFor() != 0) throw new IOException("Failed to codesign tor");
+        log.info("Successfully codesigned Tor and libevent binaries for macOS ARM");
+    }
+
+    public void start() throws IOException, InterruptedException {
+        if (torProcess != null && torProcess.isAlive()) return;
+        if (!initialized || torDirectory == null) throw new IllegalStateException("Tor not initialized");
+
+        Path torBinary = torDirectory.resolve("tor/tor");
+        if (PlatformDetector.isWindows()) torBinary = torDirectory.resolve("tor/tor.exe");
+        if (!Files.exists(torBinary)) throw new FileNotFoundException("Tor binary not found: " + torBinary);
+
         Path torDataDir = torDirectory.resolve("data");
         Files.createDirectories(torDataDir);
-        
-        // Создаем torrc файл
+
         Path torrcPath = torDirectory.resolve("torrc");
         createTorrcFile(torrcPath, torDataDir);
-        
-        // Запускаем Tor
-        ProcessBuilder pb = new ProcessBuilder(
-            torBinary.toString(),
-            "-f", torrcPath.toString()
-        );
-        
+
+        ProcessBuilder pb = new ProcessBuilder(torBinary.toString(), "-f", torrcPath.toString());
         pb.redirectErrorStream(true);
         pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
-        
+
         torProcess = pb.start();
-        logger.info("Tor process started");
-        
-        // Логируем вывод Tor в отдельном потоке
-        new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(torProcess.getInputStream()))) {
+        log.info("Tor process started");
+
+        final boolean[] bootstrapped = {false};
+        Thread logThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(torProcess.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    logger.debug("Tor: {}", line);
-                    if (line.contains("Bootstrapped 100%")) {
-                        logger.info("Tor is ready!");
-                    }
+                    log.info("Tor: {}", line);
+                    if (line.contains("Bootstrapped 100%")) bootstrapped[0] = true;
                 }
             } catch (IOException e) {
-                logger.error("Error reading Tor output", e);
+                log.error("Error reading Tor output", e);
             }
-        }).start();
-        
-        // Ждем немного, чтобы Tor запустился
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        });
+        logThread.start();
+
+        int attempts = 0;
+        while (!bootstrapped[0] && attempts++ < 900) {
+            try { Thread.sleep(100); } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IOException(e); }
         }
+
+        if (!bootstrapped[0]) throw new IOException("Tor did not bootstrap in time");
+        try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
-    
-    /**
-     * Создает файл конфигурации torrc
-     */
-    private void createTorrcFile(Path torrcPath, Path dataDir) throws IOException {
+
+    private void createTorrcFile(Path torrcPath, Path dataDir) throws IOException, InterruptedException {
+        String hashedPassword = hashPassword(controlPassword);
         String torrc = String.format(
-            "SocksPort %d\n" +
-            "ControlPort %d\n" +
-            "HashedControlPassword %s\n" +
-            "DataDirectory %s\n" +
-            "CookieAuthentication 1\n",
-            socksPort,
-            controlPort,
-            hashPassword(controlPassword),
-            dataDir.toString()
+                "SocksPort %d\n" +
+                        "ControlPort %d\n" +
+                        "HashedControlPassword %s\n" +
+                        "CookieAuthentication 0\n" +
+                        "DataDirectory %s\n",
+                socksPort, controlPort, hashedPassword, dataDir.toAbsolutePath().toString()
         );
-        
         Files.writeString(torrcPath, torrc);
-        logger.info("Created torrc file at {}", torrcPath);
+        log.info("Created torrc file at {}", torrcPath);
     }
-    
-    /**
-     * Хеширует пароль для Tor (упрощенная версия, для продакшена используйте правильный алгоритм)
-     */
-    private String hashPassword(String password) {
-        // Для простоты используем базовое хеширование
-        // В продакшене нужно использовать правильный алгоритм Tor
-        return "16:872860B76453A77D60CA2BB8C1A7042072093276A3D701AD684053EC4C";
-    }
-    
-    /**
-     * Подключается к контроллеру Tor
-     */
-    public void connect() throws IOException {
-        if (controlConnection != null) {
-            logger.warn("Already connected to Tor control");
-            return;
+
+    private String hashPassword(String password) throws IOException, InterruptedException {
+        Path torBinary = torDirectory.resolve("tor/tor");
+        if (PlatformDetector.isWindows()) torBinary = torDirectory.resolve("tor/tor.exe");
+
+        ProcessBuilder pb = new ProcessBuilder(
+                torBinary.toString(),
+                "--hash-password",
+                password
+        );
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("16:")) return line.trim();
+            }
         }
-        
+        process.waitFor();
+        throw new IOException("Failed to generate hashed password");
+    }
+
+    public void connect() throws IOException {
+        if (controlConnection != null) return;
+
         Socket socket = new Socket("127.0.0.1", controlPort);
         controlConnection = new TorControlConnection(socket);
-        controlConnection.authenticate(new byte[0]); // используем cookie authentication
-        logger.info("Connected to Tor control port");
+
+
+        controlConnection.authenticateWithPassword(controlPassword);
+        log.info("✅ Connected to Tor control port via password");
     }
-    
-    /**
-     * Получает новую идентичность (новый IP)
-     */
+
+
     public void newIdentity() throws IOException {
-        if (controlConnection == null) {
-            throw new IllegalStateException("Not connected to Tor control");
-        }
-        
+        if (controlConnection == null) throw new IllegalStateException("Not connected");
         controlConnection.signal("NEWNYM");
-        logger.info("Requested new Tor identity");
+        log.info("Requested new Tor identity");
     }
-    
-    /**
-     * Получает текущий IP через Tor
-     */
+
     public String getCurrentIP() {
-        // Здесь можно добавить запрос к сервису проверки IP через Tor SOCKS прокси
         return "Check via external service through SOCKS proxy";
     }
-    
-    /**
-     * Останавливает Tor
-     */
+
+
     public void stop() throws IOException {
         if (controlConnection != null) {
-            try {
-                controlConnection.shutdownTor("SHUTDOWN");
-            } catch (Exception e) {
-                logger.error("Error shutting down Tor gracefully", e);
-            }
+            try { controlConnection.shutdownTor("SHUTDOWN"); } catch (Exception e) { log.error("Error shutting down Tor", e); }
             controlConnection = null;
         }
-        
         if (torProcess != null && torProcess.isAlive()) {
             torProcess.destroy();
-            try {
-                torProcess.waitFor();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                torProcess.destroyForcibly();
-            }
+            try { torProcess.waitFor(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); torProcess.destroyForcibly(); }
             torProcess = null;
         }
-        
-        logger.info("Tor stopped");
+        log.info("Tor stopped");
     }
-    
-    /**
-     * Проверяет, запущен ли Tor
-     */
+
     public boolean isRunning() {
         return torProcess != null && torProcess.isAlive();
     }

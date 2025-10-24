@@ -243,3 +243,6 @@ String response = httpClient.get("https://example.com");
 Реализовано для проекта Jonio Client
 Дата: 2025-10-22
 
+
+
+
