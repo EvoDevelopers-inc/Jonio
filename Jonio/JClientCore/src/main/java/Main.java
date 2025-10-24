@@ -13,11 +13,26 @@ public class Main {
 
         Settings settings = new Settings("./session");
         JOnioClient.init(settings);
-        JOnioClient.getInstance().initialize();
+        JOnioClient client = JOnioClient.getInstance();
+        client.initialize();
 
+        // Добавляем shutdown hook для корректного завершения
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                log.info("Shutting down...");
+                client.shutdown();
+            } catch (Exception e) {
+                log.error("Error during shutdown", e);
+            }
+        }));
 
+        log.info("==============================================");
+        log.info("JOnio Client is running!");
+        log.info("Onion address: {}", client.getOnionAddress());
+        log.info("Press Ctrl+C to stop");
+        log.info("==============================================");
 
-
-
+        // Держим приложение запущенным
+        Thread.currentThread().join();
     }
 }

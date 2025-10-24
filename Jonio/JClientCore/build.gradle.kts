@@ -24,6 +24,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("io.javalin:javalin:6.7.0")
     
     // Apache Commons Compress for tar.gz extraction
     implementation("org.apache.commons:commons-compress:1.24.0")

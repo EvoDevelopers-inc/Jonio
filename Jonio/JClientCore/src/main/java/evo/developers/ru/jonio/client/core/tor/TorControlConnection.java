@@ -112,13 +112,13 @@ public class TorControlConnection implements AutoCloseable {
         log.info("Tor shutdown command sent");
     }
 
-    private void sendCommand(String command) throws IOException {
+    public void sendCommand(String command) throws IOException {
         log.debug("Sending command: {}", command);
         writer.write(command + "\r\n");
         writer.flush();
     }
 
-    private String readResponse() throws IOException {
+    public String readResponse() throws IOException {
         StringBuilder response = new StringBuilder();
         String line;
         

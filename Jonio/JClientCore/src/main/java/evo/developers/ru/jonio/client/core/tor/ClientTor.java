@@ -28,6 +28,8 @@ public class ClientTor {
     @Getter
     private Path torDirectory;
 
+    @Getter
+    private final String SOCKS_PROXY_HOST = "127.0.0.1";
     @Getter @Setter
     private int socksPort = 9050;
 
@@ -39,6 +41,10 @@ public class ClientTor {
 
     @Getter
     private boolean initialized = false;
+
+    @Getter
+    private String onionAddress;
+
 
     private static String detectPlatform() {
 
@@ -219,7 +225,7 @@ public class ClientTor {
 
 
         controlConnection.authenticateWithPassword(controlPassword);
-        log.info("✅ Connected to Tor control port via password");
+        log.info("Connected to Tor control port via password");
     }
 
 
@@ -228,11 +234,6 @@ public class ClientTor {
         controlConnection.signal("NEWNYM");
         log.info("Requested new Tor identity");
     }
-
-    public String getCurrentIP() {
-        return "Check via external service through SOCKS proxy";
-    }
-
 
     public void stop() throws IOException {
         if (controlConnection != null) {
@@ -245,6 +246,20 @@ public class ClientTor {
             torProcess = null;
         }
         log.info("Tor stopped");
+    }
+
+    public String createOnion() throws IOException {
+        controlConnection.sendCommand("ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:8080");
+        String response = controlConnection.readResponse();
+
+        for (String line : response.split("\n")) {
+            if (line.startsWith("250-ServiceID=")) {
+                onionAddress = line.substring("250-ServiceID=".length()).trim() + ".onion";
+                break;
+            }
+        }
+
+        return onionAddress;
     }
 
     public boolean isRunning() {
