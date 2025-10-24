@@ -1,4 +1,4 @@
-package evo.developers.ru.jonio.client.core.network.p2p.connector;
+package evo.developers.ru.jonio.client.core.network.p2p.connector.http;
 
 import io.javalin.http.Context;
 

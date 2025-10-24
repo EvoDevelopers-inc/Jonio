@@ -1,7 +1,7 @@
 package evo.developers.ru.jonio.client.core.network.p2p.connector;
 
+import evo.developers.ru.jonio.client.core.network.p2p.connector.http.JOnioAPI;
 import evo.developers.ru.jonio.client.core.tor.ClientTor;
-import evo.developers.ru.jonio.client.core.tor.TorControlConnection;
 import io.javalin.Javalin;
 
 import java.io.IOException;
