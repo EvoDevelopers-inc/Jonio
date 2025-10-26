@@ -35,6 +35,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'com.google.crypto.tink:tink:1.15.0'
+    implementation("com.nimbusds:nimbus-jose-jwt:10.5")
 }
 
 tasks.named('test') {
