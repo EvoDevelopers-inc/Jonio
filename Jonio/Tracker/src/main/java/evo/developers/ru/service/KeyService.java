@@ -52,4 +52,10 @@ public class KeyService {
         }
     }
 
+    public OctetKeyPair getEd25519KeyPair() throws Exception {
+        return new OctetKeyPairGenerator(Curve.Ed25519)
+                .keyID(UUID.randomUUID().toString())
+                .generate();
+    }
+
 }

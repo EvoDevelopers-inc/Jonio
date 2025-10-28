@@ -21,19 +21,6 @@ public class Base64Service {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static <T> T decode(String base64, Class<T> clazz) {
-        try {
-
-            byte[] decodedBytes = Base64.getDecoder().decode(base64);
-
-            return objectMapper.readValue(decodedBytes, clazz);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Base64 format", e);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid JSON content", e);
-        }
-    }
-
     public String encode(String base64) {
         try {
             byte[] encodedBytes = Base64.getEncoder().encode(base64.getBytes());

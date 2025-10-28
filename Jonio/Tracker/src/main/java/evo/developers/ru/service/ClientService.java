@@ -1,5 +1,6 @@
 package evo.developers.ru.service;
 
+import evo.developers.ru.dto.RequestAuthJwt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ import java.util.Base64;
 public class ClientService {
 
     @Value("${jonio.pepper}")
-    private String pepper;
+    private String pepper = "key";
 
     public String computeIdHmac(String login, String password) {
 
@@ -31,6 +32,21 @@ public class ClientService {
 
         }catch (Exception e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error generate JOnio Id");
+        }
+
+    }
+
+    protected void validationPasswordAndLogin(RequestAuthJwt requestAuth)
+    {
+        String password = requestAuth.getPassword();
+        String username = requestAuth.getUsername();
+
+        if (password == null || password.length() < 6) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        if (username == null || username.length() < 4) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
     }
