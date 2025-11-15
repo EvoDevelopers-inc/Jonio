@@ -56,11 +56,24 @@ public class AuthService {
         String refreshToken = payload.getRefreshToken();
         String jwt = payload.getToken();
 
-        if(jwtService.isTokenValid(refreshToken) && (jwtService.isTokenSignValid(jwt) && jwtService.isTokenExpired(jwt))){
-            return
+        validateRefreshableJwt(refreshToken);
+        validateJwt(jwt);
+
+        return ResponseAuthJwt.builder().build();
+
+    }
+
+
+    protected void validateRefreshableJwt(String jwtRefresh) {
+        if(!jwtService.isTokenValid(jwtRefresh)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Refresh Token");
         }
+    }
 
-
+    protected void validateJwt(String jwt) {
+        if(!jwtService.isTokenSignValid(jwt) || ! jwtService.isTokenExpired(jwt)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "The token does not need to be updated or has an error in the signature");
+        }
 
     }
 
