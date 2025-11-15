@@ -2,6 +2,7 @@ package evo.developers.ru.service;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.Ed25519Signer;
+import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jose.jwk.OctetKeyPair;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -93,6 +95,49 @@ public class JwtService {
             return jwt.serialize();
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Refresh JWT create error", e);
+        }
+    }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
+            Date expirationTime = claims.getExpirationTime();
+
+            if (expirationTime == null) {
+                return true;
+            }
+
+            return expirationTime.before(new Date());
+        } catch (ParseException e) {
+
+            return true;
+        }
+    }
+
+    public boolean isTokenValid(String token) {
+
+        if (!isTokenSignValid(token)) {
+            return false;
+        }
+
+        return ! isTokenExpired(token);
+    }
+
+    public boolean isTokenSignValid(String token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+
+            JWSVerifier verifier = new Ed25519Verifier(keyPair.toPublicJWK());
+            boolean signatureValid = signedJWT.verify(verifier);
+            if (!signatureValid) {
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            return false;
         }
     }
 
