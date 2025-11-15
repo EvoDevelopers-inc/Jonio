@@ -2,6 +2,7 @@ package evo.developers.ru.controller;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import evo.developers.ru.dto.RequestAuthJwt;
+import evo.developers.ru.dto.RequestRefreshJwt;
 import evo.developers.ru.dto.ResponseAuthJwt;
 import evo.developers.ru.service.AuthService;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,11 @@ public class AuthController {
     @PostMapping("/jwt/create")
     public ResponseEntity<ResponseAuthJwt> auth(@RequestBody RequestAuthJwt auth) {
         return ResponseEntity.ok(authService.auth(auth));
+    }
+
+    @PostMapping("/jwt/refresh")
+    public ResponseEntity<ResponseAuthJwt> refresh(@RequestBody RequestRefreshJwt refreshJwt) {
+        return ResponseEntity.ok(authService.refresh(refreshJwt));
     }
 
 }

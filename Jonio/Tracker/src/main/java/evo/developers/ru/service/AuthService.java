@@ -6,6 +6,7 @@ import com.nimbusds.jose.util.Base64URL;
 import evo.developers.ru.controller.AuthController;
 import evo.developers.ru.dto.RequestAuthJwt;
 import com.nimbusds.jose.jwk.Curve;
+import evo.developers.ru.dto.RequestRefreshJwt;
 import evo.developers.ru.dto.ResponseAuthJwt;
 import evo.developers.ru.model.JWT;
 import evo.developers.ru.model.Role;
@@ -48,6 +49,19 @@ public class AuthService {
                 .token(jwt.getToken())
                 .tokenRefresh(jwt.getRefreshToken())
                 .build();
+    }
+
+    public ResponseAuthJwt refresh(RequestRefreshJwt payload) {
+
+        String refreshToken = payload.getRefreshToken();
+        String jwt = payload.getToken();
+
+        if(jwtService.isTokenValid(refreshToken) && (jwtService.isTokenSignValid(jwt) && jwtService.isTokenExpired(jwt))){
+            return
+        }
+
+
+
     }
 
 
