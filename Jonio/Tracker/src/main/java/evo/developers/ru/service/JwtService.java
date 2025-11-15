@@ -121,7 +121,7 @@ public class JwtService {
             return false;
         }
 
-        return ! isTokenExpired(token);
+        return !isTokenExpired(token);
     }
 
     public boolean isTokenSignValid(String token) {
@@ -129,12 +129,9 @@ public class JwtService {
             SignedJWT signedJWT = SignedJWT.parse(token);
 
             JWSVerifier verifier = new Ed25519Verifier(keyPair.toPublicJWK());
-            boolean signatureValid = signedJWT.verify(verifier);
-            if (!signatureValid) {
-                return false;
-            }
 
-            return true;
+            return signedJWT.verify(verifier);
+
 
         } catch (Exception e) {
             return false;

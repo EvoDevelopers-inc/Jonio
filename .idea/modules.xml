@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/JClientCore/Jonio.JClientCore.main.iml" filepath="$PROJECT_DIR$/.idea/modules/JClientCore/Jonio.JClientCore.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Tracker.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Tracker.main.iml" />
     </modules>
   </component>
 </project>
