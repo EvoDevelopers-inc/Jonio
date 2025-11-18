@@ -21,6 +21,6 @@ public class User {
     private List<JonioAddress> onionAddresses;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<VersionControl> maxVersionControl;
+    private List<JwtVersionControl> maxVersionControl;
 
 }

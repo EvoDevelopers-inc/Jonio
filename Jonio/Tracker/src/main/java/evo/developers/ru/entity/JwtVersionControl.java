@@ -6,11 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 @Entity
-@Table(name = "version_control")
+@Table(name = "jwt_version_control")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class VersionControl {
+public class JwtVersionControl {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

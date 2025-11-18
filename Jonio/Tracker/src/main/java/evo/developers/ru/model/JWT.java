@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class JWT {
+public class Jwt {
     private String token;
     private String refreshToken;
 }
