@@ -6,16 +6,16 @@ import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jose.jwk.OctetKeyPair;
-import evo.developers.ru.model.JWT;
+import evo.developers.ru.model.Jwt;
 import evo.developers.ru.model.JwtPayload;
 import evo.developers.ru.model.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -28,15 +28,20 @@ public class JwtService {
     private final JsonService jsonService;
 
 
-    public JWT createJWT(String jOnioID, String pKey, List<Role> listRole)
+    public Jwt createJwtTokenAndRefresh(String jOnioID, String pKey, List<Role> listRole, long versionIdJwt)
     {
-        return JWT.builder()
-                .token(createToken(jOnioID, pKey, listRole))
+        return Jwt.builder()
+                .token(createToken(jOnioID, pKey, listRole, versionIdJwt))
                 .refreshToken(createRefreshToken(jOnioID))
                 .build();
     }
 
-    public String createToken(String jOnioID, String pKey, List<Role> listRole) {
+    public String createJwtToken(String jOnioID, String pKey, List<Role> listRole, long versionIdJwt)
+    {
+        return createToken(jOnioID, pKey, listRole, versionIdJwt);
+    }
+
+    protected String createToken(String jOnioID, String pKey, List<Role> listRole, long version) {
 
         try {
             JWSSigner signer = new Ed25519Signer(keyPair);
@@ -46,11 +51,12 @@ public class JwtService {
 
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                     .subject(jOnioID)
-                    .issuer(jsonService.toJson(JwtPayload.builder().pKey(pKey).build()))
                     .issueTime(new Date())
                     .expirationTime(new Date(System.currentTimeMillis() + 3600_000))
                     .claim("roles", listRole)
                     .claim("nonce", nonce)
+                    .claim("jc-version", version)
+                    .claim("payload", JwtPayload.builder().pKeyBase64(pKey).build())
                     .jwtID(jti)
                     .build();
 
@@ -71,7 +77,7 @@ public class JwtService {
 
     }
 
-    public String createRefreshToken(String userId) {
+    protected String createRefreshToken(String userId) {
         try {
             JWSSigner signer = new Ed25519Signer(keyPair);
 
@@ -137,5 +143,50 @@ public class JwtService {
             return false;
         }
     }
+
+    public JwtPayload getJwtBody(String token) {
+
+        try {
+
+            if (!isTokenSignValid(token)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token signature");
+            }
+
+
+            if (isTokenExpired(token)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
+            }
+
+            return jsonService.fromJson(SignedJWT.parse(token).getJWTClaimsSet().getStringClaim("payload"), JwtPayload.class);
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+    }
+
+
+    public String getSubjectValidated(String token) {
+        try {
+
+            if (!isTokenSignValid(token)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token signature");
+            }
+
+
+            if (isTokenExpired(token)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
+            }
+
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            return signedJWT.getJWTClaimsSet().getSubject();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+    }
+
 
 }

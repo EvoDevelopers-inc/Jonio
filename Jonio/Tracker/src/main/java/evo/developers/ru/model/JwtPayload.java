@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class JwtPayload {
-    private String pKey;
+    private String pKeyBase64;
 }
