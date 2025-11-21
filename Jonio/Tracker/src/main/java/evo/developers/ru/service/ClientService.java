@@ -17,10 +17,10 @@ public class ClientService {
     @Value("${jonio.pepper}")
     private String pepper;
 
-    public String computeIdHmac(String login, String password) {
+    public String computeIdHmac(String hashClient) {
 
         try {
-            String data = login + ":" + password;
+            String data = hashClient + ":" + pepper.length();
             byte[] key = pepper.getBytes(StandardCharsets.UTF_8);
 
             Mac mac = Mac.getInstance("HmacSHA256");
@@ -36,17 +36,12 @@ public class ClientService {
 
     }
 
-    protected void validationPasswordAndLogin(RequestAuthJwt requestAuth)
+    protected void validationHashClient(RequestAuthJwt requestAuth)
     {
-        String password = requestAuth.getPassword();
-        String username = requestAuth.getUsername();
+        String hashClient = requestAuth.getClientHash();
 
-        if (password == null || password.length() < 6) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
-
-        if (username == null || username.length() < 4) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        if (hashClient.length() > 256){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hash Client is too long");
         }
 
     }

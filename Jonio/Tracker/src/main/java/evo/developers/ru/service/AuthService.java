@@ -43,9 +43,9 @@ public class AuthService {
         System.out.println("jwk: " + jwk);
         keyService.validatePubKey(jwk);
 
-        clientService.validationPasswordAndLogin(requestAuth);
+        clientService.validationHashClient(requestAuth);
 
-        String jOnioID = clientService.computeIdHmac(requestAuth.getUsername(), requestAuth.getPassword());
+        String jOnioID = clientService.computeIdHmac(requestAuth.getClientHash());
 
         Optional<User> userOptional = userRepository.findById(jOnioID);
 
