@@ -10,9 +10,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
-/**
- * HTTP клиент для работы через Tor SOCKS прокси
- */
 public class TorHttpClient {
     private static final Logger logger = LoggerFactory.getLogger(TorHttpClient.class);
     
@@ -36,7 +33,7 @@ public class TorHttpClient {
         URL url = new URL(urlString);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
         connection.setRequestMethod("GET");
-        connection.setConnectTimeout(60000); // 60 секунд для .onion
+        connection.setConnectTimeout(60000);
         connection.setReadTimeout(60000);
         
         return readResponse(connection);
@@ -50,11 +47,10 @@ public class TorHttpClient {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "application/json");
-        connection.setConnectTimeout(60000); // 60 секунд для .onion
+        connection.setConnectTimeout(60000);
         connection.setReadTimeout(60000);
         connection.setDoOutput(true);
-        
-        // Отправляем JSON тело
+
         String jsonBody = gson.toJson(body);
         logger.info("Sending POST to {}: {}", urlString, jsonBody);
         

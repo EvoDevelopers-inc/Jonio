@@ -15,7 +15,7 @@ import java.util.Base64;
 public class ClientService {
 
     @Value("${jonio.pepper}")
-    private String pepper = "key";
+    private String pepper;
 
     public String computeIdHmac(String login, String password) {
 

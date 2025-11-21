@@ -51,7 +51,7 @@ public class JOnioConnector extends JOnioAPI {
                     return gson.fromJson(json, targetType);
                 }
             });
-        }).start(clientTor.getSOCKS_PROXY_HOST(), 8080);
+        }).start(clientTor.getSOCKS_PROXY_HOST(), 1234);
         
 
         app.get("/", this::index);
@@ -59,7 +59,7 @@ public class JOnioConnector extends JOnioAPI {
         app.post("/message", this::handleMessage);
         app.get("/peers", this::listPeers);
         
-        log.info("Javalin server started on {}:8080", clientTor.getSOCKS_PROXY_HOST());
+        log.info("Javalin server started on {}:1234", clientTor.getSOCKS_PROXY_HOST());
     }
 
     public void stop() {

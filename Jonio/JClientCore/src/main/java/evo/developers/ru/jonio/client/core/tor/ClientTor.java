@@ -1,6 +1,7 @@
 package evo.developers.ru.jonio.client.core.tor;
 
 import evo.developers.ru.jonio.client.core.helpers.PlatformDetector;
+import evo.developers.ru.jonio.client.core.helpers.httpclient.TorHttpClient;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,9 @@ public class ClientTor {
 
     @Getter
     private String onionAddress;
+
+    @Getter
+    private TorHttpClient torHttpClient;
 
 
     private static String detectPlatform() {
@@ -226,6 +230,8 @@ public class ClientTor {
 
         controlConnection.authenticateWithPassword(controlPassword);
         log.info("Connected to Tor control port via password");
+
+        torHttpClient = new TorHttpClient(getSOCKS_PROXY_HOST(), getSocksPort());
     }
 
 
@@ -249,7 +255,7 @@ public class ClientTor {
     }
 
     public String createOnion() throws IOException {
-        controlConnection.sendCommand("ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:8080");
+        controlConnection.sendCommand("ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:1234");
         String response = controlConnection.readResponse();
 
         for (String line : response.split("\n")) {

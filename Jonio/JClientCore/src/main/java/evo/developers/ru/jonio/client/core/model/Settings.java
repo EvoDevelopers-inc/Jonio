@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class Settings {
     private final String pathToSessionFolder;
+    private final String urlServer;
 }

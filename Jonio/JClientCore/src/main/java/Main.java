@@ -10,10 +10,10 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        Settings settings = new Settings("./session");
+        Settings settings = new Settings("./session", "localhost:8080");
         JOnioClient.init(settings);
         JOnioClient client = JOnioClient.getInstance();
-        client.initialize();
+        client.login("login", "password");
 
         JOnioConnector connector = JOnioConnector.getInstance(client.getTorClient());
         String myOnionAddress = client.getTorClient().getOnionAddress();

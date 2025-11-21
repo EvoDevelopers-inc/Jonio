@@ -28,6 +28,8 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.24.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("org.jetbrains:annotations:24.0.1")
+    implementation("com.google.crypto.tink:tink:1.15.0")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.5")
 
 }
 

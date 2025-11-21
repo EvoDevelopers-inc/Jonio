@@ -5,10 +5,20 @@ import evo.developers.ru.jonio.client.core.JOnioClient;
 import evo.developers.ru.jonio.client.core.exceptions.JOnioClientExists;
 import evo.developers.ru.jonio.client.core.exceptions.JOnioClientNotInit;
 import evo.developers.ru.jonio.client.core.model.Settings;
+import lombok.Getter;
+import lombok.Setter;
 
 abstract public class JClient {
     private static JClient jonioClient;
-    private static Gson gsonHelper = new Gson();
+    private static final Gson gsonHelper = new Gson();
+
+    @Setter
+    @Getter
+    private IJwkPairFactory jwkPairFactory;
+
+    @Setter
+    @Getter
+    private IClientHasher clientHasher;
 
     public static JOnioClient getInstance(){
 

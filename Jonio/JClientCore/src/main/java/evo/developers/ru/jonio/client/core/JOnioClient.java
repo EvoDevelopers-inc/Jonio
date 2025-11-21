@@ -1,12 +1,18 @@
 package evo.developers.ru.jonio.client.core;
 
+import com.nimbusds.jose.jwk.OctetKeyPair;
+import evo.developers.ru.jonio.client.core.base.IJwkPairFactory;
 import evo.developers.ru.jonio.client.core.base.JClient;
+import evo.developers.ru.jonio.client.core.cryptography.ClientHasher;
+import evo.developers.ru.jonio.client.core.cryptography.JwkPairFactory;
+import evo.developers.ru.jonio.client.core.dto.RequestAuthJwt;
 import evo.developers.ru.jonio.client.core.exceptions.JOnioClientErrorInit;
 import evo.developers.ru.jonio.client.core.exceptions.JOnioClientNotInit;
 import evo.developers.ru.jonio.client.core.helpers.httpclient.TorHttpClient;
 import evo.developers.ru.jonio.client.core.model.JOSession;
 import evo.developers.ru.jonio.client.core.model.Settings;
 import evo.developers.ru.jonio.client.core.network.p2p.connector.JOnioConnector;
+import evo.developers.ru.jonio.client.core.network.sdk.JOnioApiServer;
 import evo.developers.ru.jonio.client.core.tor.ClientTor;
 import evo.developers.ru.jonio.client.core.tor.TorControlConnection;
 import io.javalin.Javalin;
@@ -21,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,28 +37,22 @@ public class JOnioClient extends JClient {
     public static final String VERSION_CLIENT = "ALPHA-0.9.1-l33t AIR TYPE";
     @Getter
     private JOSession session;
+
+    @Getter
     private Settings settings;
-    
+
+    @Getter
+    private JOnioApiServer sdkApiServer;
+
     @Getter
     private ClientTor torClient;
 
     public JOnioClient(Settings settings) {
         this.settings = settings;
-    }
 
+        setJwkPairFactory(new JwkPairFactory());
+        setClientHasher(new ClientHasher());
 
-    public void initialize() throws Exception {
-        String sSessionPathFolder  = settings.getPathToSessionFolder();
-
-        if (sSessionPathFolder.isEmpty()){
-            throw new JOnioClientErrorInit("No session folder provided");
-        }
-
-        Path sessionPathFolder = Paths.get(sSessionPathFolder);
-
-        initSession(sessionPathFolder);
-
-        initTor(sessionPathFolder);
     }
 
 
@@ -63,13 +64,15 @@ public class JOnioClient extends JClient {
         torClient.start();
         torClient.connect();
 
+        sdkApiServer = new JOnioApiServer(getSettings(), torClient.getTorHttpClient());
+
         log.info("Tor client initialized successfully");
         log.info("SOCKS proxy: :{}", torClient.getSocksPort());
 
         JOnioConnector.getInstance(torClient);
 
-        String onionAdress = torClient.createOnion();
-        System.out.println("onion adress: " + onionAdress);
+        String onionAddress = torClient.createOnion();
+        System.out.println("onion address: " + onionAddress);
     }
 
 
@@ -86,8 +89,8 @@ public class JOnioClient extends JClient {
         return torClient.getOnionAddress();
     }
 
-    private void login() throws Exception {
-        String sSessionPathFolder  = settings.getPathToSessionFolder();
+    public void login(String login, String password) throws Exception {
+        String sSessionPathFolder = settings.getPathToSessionFolder();
 
         if (sSessionPathFolder.isEmpty()){
             throw new JOnioClientErrorInit("No session folder provided");
@@ -96,6 +99,21 @@ public class JOnioClient extends JClient {
         Path sessionPathFolder = Paths.get(sSessionPathFolder);
 
         initSession(sessionPathFolder);
+        initTor(sessionPathFolder);
+
+        String clientHash = getClientHasher().computeClientHash(login, password);
+        OctetKeyPair octetKeyPair = getJwkPairFactory().generateKeyPair();
+
+        log.info("Client hash: {}", clientHash);
+
+        log.info("Client Public key: {}", getJwkPairFactory().getPublicJwk(octetKeyPair));
+        log.info("Client Private key: {}", getJwkPairFactory().getPrivateJwk(octetKeyPair));
+
+        sdkApiServer.auth(RequestAuthJwt.builder()
+                        .hashClient(clientHash)
+                        .pubKeyBase64(Base64.getEncoder().encodeToString(getJwkPairFactory().getPublicJwk(octetKeyPair).getBytes()))
+                        .build()
+                );
     }
 
     private void initSession(Path sessionPathFolder) throws Exception{
@@ -118,5 +136,15 @@ public class JOnioClient extends JClient {
             }
         }
 
+    }
+
+    @Override
+    public void setJwkPairFactory(IJwkPairFactory jwkPairFactory) {
+        jwkPairFactory = jwkPairFactory;
+    }
+
+    @Override
+    public IJwkPairFactory getJwkPairFactory() {
+        return null;
     }
 }
